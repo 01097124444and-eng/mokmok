@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>جواهر ولوز — لعبة الألغاز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ============ Design tokens ============ */
+  :root{
+    --bg-top:#1b1035;
+    --bg-bottom:#0f0a26;
+    --surface:#2c1a55;
+    --surface-2:#241448;
+    --surface-border:#4a3480;
+    --text:#f4eeff;
+    --text-muted:#b9a8e0;
+    --accent-pink:#ff5da2;
+    --accent-gold:#ffc857;
+    --accent-teal:#2de1c2;
+    --accent-blue:#6f8bff;
+    --danger:#ff5d6c;
+    --tile-bg:#3a2569;
+    --tile-bg-2:#33205e;
+    --shadow:0 10px 30px rgba(10,4,30,.45);
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:9px;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg-top:#fdf6ff;
+      --bg-bottom:#f1e6ff;
+      --surface:#ffffff;
+      --surface-2:#f6eeff;
+      --surface-border:#e4d6ff;
+      --text:#2a1b4d;
+      --text-muted:#6b5b95;
+      --tile-bg:#efe7ff;
+      --tile-bg-2:#e6daff;
+      --shadow:0 10px 26px rgba(90,60,160,.16);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg-top:#fdf6ff;
+    --bg-bottom:#f1e6ff;
+    --surface:#ffffff;
+    --surface-2:#f6eeff;
+    --surface-border:#e4d6ff;
+    --text:#2a1b4d;
+    --text-muted:#6b5b95;
+    --tile-bg:#efe7ff;
+    --tile-bg-2:#e6daff;
+    --shadow:0 10px 26px rgba(90,60,160,.16);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Cairo',system-ui,sans-serif;
+    background:radial-gradient(circle at 50% -10%, var(--bg-top), var(--bg-bottom) 70%);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    overflow-x:hidden;
+  }
+
+  #app{
+    width:100%;
+    max-width:480px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  /* ============ Topbar ============ */
+  .topbar{
+    background:var(--surface);
+    border:1px solid var(--surface-border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .topbar-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .level-badge{
+    display:flex;
+    flex-direction:column;
+    line-height:1.15;
+  }
+  .level-badge .num{
+    font-size:22px;
+    font-weight:800;
+  }
+  .level-badge .theme{
+    font-size:12.5px;
+    color:var(--text-muted);
+    font-weight:600;
+  }
+  .icon-btn{
+    background:var(--surface-2);
+    border:1px solid var(--surface-border);
+    color:var(--text);
+    border-radius:12px;
+    width:40px;
+    height:40px;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .icon-btn:active{ transform:scale(.92); }
+
+  .stat-row{
+    display:flex;
+    gap:8px;
+  }
+  .stat{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--surface-border);
+    border-radius:var(--radius-md);
+    padding:8px 10px;
+    text-align:center;
+  }
+  .stat .label{
+    font-size:11px;
+    color:var(--text-muted);
+    font-weight:600;
+    margin-bottom:2px;
+  }
+  .stat .value{
+    font-size:17px;
+    font-weight:800;
+  }
+  .stat.warn .value{ color:var(--accent-pink); }
+
+  .goal-bar-wrap{
+    background:var(--surface-2);
+    border:1px solid var(--surface-border);
+    border-radius:999px;
+    height:14px;
+    overflow:hidden;
+    position:relative;
+  }
+  .goal-bar-fill{
+    height:100%;
+    width:0%;
+    border-radius:999px;
+    background:linear-gradient(90deg,var(--accent-teal),var(--accent-blue));
+    transition:width .35s ease;
+  }
+  .goal-bar-label{
+    text-align:center;
+    font-size:11.5px;
+    color:var(--text-muted);
+    font-weight:700;
+  }
+
+  /* ============ Board ============ */
+  .board-wrap{
+    background:linear-gradient(165deg, var(--surface), var(--surface-2));
+    border:1px solid var(--surface-border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
+    padding:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #board{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    max-width:440px;
+    background:
+      radial-gradient(120% 90% at 50% -12%, rgba(255,255,255,.07), transparent 55%),
+      var(--surface-2);
+    border-radius:var(--radius-md);
+    box-shadow:inset 0 8px 20px rgba(0,0,0,.45), inset 0 -3px 8px rgba(255,255,255,.04);
+    overflow:hidden;
+  }
+  .tile{
+    position:absolute;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:min(7vw,30px);
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    background:
+      radial-gradient(circle at 32% 24%, rgba(255,255,255,.55), rgba(255,255,255,0) 48%),
+      linear-gradient(155deg, var(--tile-bg), var(--tile-bg-2));
+    box-shadow:
+      inset 0 2px 2px rgba(255,255,255,.30),
+      inset 0 -5px 9px rgba(0,0,0,.40),
+      0 5px 9px rgba(0,0,0,.35);
+    text-shadow:0 3px 4px rgba(0,0,0,.5), 0 0 1px rgba(255,255,255,.25);
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    transition:top .28s cubic-bezier(.34,1.3,.64,1), left .28s cubic-bezier(.34,1.3,.64,1), transform .16s ease, opacity .2s ease, box-shadow .16s ease;
+    opacity:1;
+    will-change:top,left;
+  }
+  .tile.even{
+    background:
+      radial-gradient(circle at 32% 24%, rgba(255,255,255,.5), rgba(255,255,255,0) 48%),
+      linear-gradient(155deg, var(--tile-bg-2), var(--tile-bg));
+  }
+  .tile.selected{
+    transform:scale(.86) translateY(1px);
+    box-shadow:
+      0 0 0 3px var(--accent-gold),
+      inset 0 3px 7px rgba(0,0,0,.5);
+    z-index:5;
+  }
+  .tile.matched{
+    transform:scale(0);
+    opacity:0;
+  }
+  .tile.spawn-in{ opacity:0; }
+  .tile.invalid{
+    animation:shake .3s ease;
+  }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-6px); }
+    75%{ transform:translateX(6px); }
+  }
+
+  .floating-score{
+    position:absolute;
+    font-weight:800;
+    font-size:15px;
+    color:var(--accent-gold);
+    pointer-events:none;
+    animation:floatUp .8s ease forwards;
+    z-index:20;
+    text-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  @keyframes floatUp{
+    0%{ opacity:0; transform:translateY(0); }
+    15%{ opacity:1; }
+    100%{ opacity:0; transform:translateY(-46px); }
+  }
+
+  /* ============ Overlays ============ */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(10,5,25,.62);
+    backdrop-filter:blur(3px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .overlay.hidden{ display:none; }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--surface-border);
+    border-radius:24px;
+    box-shadow:var(--shadow);
+    padding:26px 22px;
+    width:100%;
+    max-width:400px;
+    text-align:center;
+  }
+  .panel h1{
+    font-size:26px;
+    margin:0 0 6px;
+    font-weight:900;
+  }
+  .panel h2{
+    font-size:22px;
+    margin:0 0 4px;
+    font-weight:800;
+  }
+  .panel p{
+    color:var(--text-muted);
+    font-size:14px;
+    margin:0 0 18px;
+    font-weight:600;
+  }
+  .panel .emoji-hero{
+    font-size:52px;
+    margin-bottom:8px;
+  }
+  .btn{
+    display:block;
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-family:inherit;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    margin-top:10px;
+    transition:transform .12s ease, filter .15s ease;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{
+    background:linear-gradient(90deg,var(--accent-pink),var(--accent-blue));
+    color:#fff;
+  }
+  .btn-secondary{
+    background:var(--surface-2);
+    color:var(--text);
+    border:1px solid var(--surface-border);
+  }
+  .btn-gold{
+    background:linear-gradient(90deg,var(--accent-gold),var(--accent-pink));
+    color:#2a1b4d;
+  }
+
+  .modal-stats{
+    display:flex;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .modal-stats .stat{ flex:1; }
+
+  /* ============ Level select ============ */
+  .level-select-panel{
+    max-width:440px;
+    max-height:82vh;
+    display:flex;
+    flex-direction:column;
+  }
+  .level-select-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .level-select-head h2{ margin:0; }
+  .level-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+    overflow-y:auto;
+    padding:4px 2px 8px;
+  }
+  .level-cell{
+    aspect-ratio:1/1;
+    border-radius:12px;
+    border:1px solid var(--surface-border);
+    background:var(--surface-2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:14px;
+    cursor:pointer;
+    position:relative;
+    color:var(--text);
+  }
+  .level-cell.locked{
+    color:var(--text-muted);
+    cursor:not-allowed;
+    opacity:.55;
+  }
+  .level-cell.current{
+    background:linear-gradient(135deg,var(--accent-pink),var(--accent-blue));
+    color:#fff;
+    border-color:transparent;
+  }
+  .level-cell.done::after{
+    content:'✓';
+    position:absolute;
+    top:2px;
+    left:4px;
+    font-size:10px;
+    color:var(--accent-teal);
+  }
+
+  .hidden{ display:none !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .tile, .goal-bar-fill{ transition:none !important; }
+    .floating-score{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="level-badge">
+        <span class="num" id="hudLevelNum">المستوى 1</span>
+        <span class="theme" id="hudThemeName">الجواهر الكريستالية</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="icon-btn" id="btnRestart" title="إعادة المحاولة">↺</button>
+        <button class="icon-btn" id="btnLevels" title="اختيار المستوى">☰</button>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="label">النقاط</div>
+        <div class="value" id="hudScore">0</div>
+      </div>
+      <div class="stat" id="movesStat">
+        <div class="label" id="movesLabel">الحركات</div>
+        <div class="value" id="hudMoves">20</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goalFill"></div></div>
+      <div class="goal-bar-label" id="goalLabel">الهدف: 0 / 0</div>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div id="board"></div>
+  </div>
+</div>
+
+<!-- شاشة البداية -->
+<div class="overlay" id="startScreen">
+  <div class="panel">
+    <div class="emoji-hero">💎🍬✨</div>
+    <h1>جواهر ولوز</h1>
+    <p>١٠٠ مستوى من الألغاز المتدرجة — اجمع ثلاثة متشابهة فأكثر وحقق الهدف قبل نفاد الحركات أو الوقت.</p>
+    <button class="btn btn-primary" id="btnPlay">ابدأ اللعب</button>
+    <button class="btn btn-secondary" id="btnPickLevel">اختيار مستوى</button>
+  </div>
+</div>
+
+<!-- شاشة اختيار المستوى -->
+<div class="overlay hidden" id="levelSelectScreen">
+  <div class="panel level-select-panel">
+    <div class="level-select-head">
+      <h2>اختر المستوى</h2>
+      <button class="icon-btn" id="btnCloseLevels">✕</button>
+    </div>
+    <div class="level-grid" id="levelGrid"></div>
+  </div>
+</div>
+
+<!-- شاشة الفوز -->
+<div class="overlay hidden" id="winModal">
+  <div class="panel">
+    <div class="emoji-hero">🏆</div>
+    <h2>أحسنت! فزت بالمستوى</h2>
+    <p id="winSummary">لقد حققت الهدف بنجاح.</p>
+    <div class="modal-stats">
+      <div class="stat"><div class="label">نقاطك</div><div class="value" id="winScore">0</div></div>
+      <div class="stat"><div class="label">الهدف</div><div class="value" id="winTarget">0</div></div>
+    </div>
+    <button class="btn btn-primary" id="btnNextLevel">المستوى التالي</button>
+    <button class="btn btn-secondary" id="btnReplayWin">إعادة اللعب</button>
+  </div>
+</div>
+
+<!-- شاشة الخسارة -->
+<div class="overlay hidden" id="loseModal">
+  <div class="panel">
+    <div class="emoji-hero">💔</div>
+    <h2 id="loseTitle">انتهت المحاولات</h2>
+    <p id="loseSummary">لم تصل إلى الهدف هذه المرة، جرّب مرة أخرى!</p>
+    <div class="modal-stats">
+      <div class="stat"><div class="label">نقاطك</div><div class="value" id="loseScore">0</div></div>
+      <div class="stat"><div class="label">الهدف</div><div class="value" id="loseTarget">0</div></div>
+    </div>
+    <button class="btn btn-gold" id="btnRetryLose">إعادة المحاولة</button>
+    <button class="btn btn-secondary" id="btnLevelsFromLose">اختيار مستوى آخر</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= إعدادات الثيمات ================= */
+  var THEMES = [
+    { name:'الجواهر الكريستالية', icons:['💎','🔷','🔶','🔹','🔸','🟣','🟢'] },
+    { name:'مملكة الحلويات',       icons:['🍬','🍭','🍫','🍡','🍩','🧁','🍓'] },
+    { name:'بستان الفاكهة',        icons:['🍎','🍇','🍊','🍋','🍑','🍉','🍒'] },
+    { name:'كنوز الفضاء',          icons:['🌟','⭐','✨','🔮','🪐','☄️','🌙'] },
+    { name:'أعماق المحيط',         icons:['🐚','🦪','💠','🐠','🌊','🫧','🔱'] }
+  ];
+  var TOTAL_LEVELS = 100;
+  var STORAGE_KEY = 'match3_gems_and_sweets_progress_v1';
+
+  /* ================= توليد إعدادات كل مستوى ================= */
+  function getThemeIndex(level){
+    return Math.min(THEMES.length - 1, Math.floor((level - 1) / 20));
+  }
+  function computeLevelConfig(level){
+    var theme = THEMES[getThemeIndex(level)];
+    var gridSize = Math.min(9, 6 + Math.floor((level - 1) / 25));
+    var typesCount = Math.min(theme.icons.length, 4 + Math.floor((level - 1) / 20));
+    var target = Math.round(600 + level * 130 + Math.pow(level, 1.3) * 4);
+    if (level % 20 === 0) target = Math.round(target * 1.15);
+    var timed = (level % 8 === 0);
+    var movesLimit = null, timeLimit = null;
+    if (timed) {
+      timeLimit = Math.max(40, 150 - level);
+    } else {
+      movesLimit = Math.max(14, 32 - Math.floor(level / 6));
+    }
+    return {
+      level: level, theme: theme, gridSize: gridSize, typesCount: typesCount,
+      target: target, timed: timed, movesLimit: movesLimit, timeLimit: timeLimit
+    };
+  }
+
+  /* ================= حالة اللعبة ================= */
+  var state = {
+    currentLevel: 1,
+    unlockedLevel: 1,
+    config: null,
+    matrix: null,
+    score: 0,
+    movesLeft: 0,
+    timeLeft: 0,
+    timerHandle: null,
+    selected: null,
+    isAnimating: false,
+    cellSize: 0,
+    tileIdCounter: 0
+  };
+  var tilesById = new Map();
+  var elsById = new Map();
+
+  /* ================= عناصر DOM ================= */
+  var boardEl = document.getElementById('board');
+  var hudLevelNum = document.getElementById('hudLevelNum');
+  var hudThemeName = document.getElementById('hudThemeName');
+  var hudScore = document.getElementById('hudScore');
+  var hudMoves = document.getElementById('hudMoves');
+  var movesLabel = document.getElementById('movesLabel');
+  var movesStat = document.getElementById('movesStat');
+  var goalFill = document.getElementById('goalFill');
+  var goalLabel = document.getElementById('goalLabel');
+
+  var startScreen = document.getElementById('startScreen');
+  var levelSelectScreen = document.getElementById('levelSelectScreen');
+  var winModal = document.getElementById('winModal');
+  var loseModal = document.getElementById('loseModal');
+  var levelGrid = document.getElementById('levelGrid');
+
+  /* ================= تخزين التقدم ================= */
+  function loadProgress(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && typeof data.unlockedLevel === 'number') {
+          state.unlockedLevel = Math.min(TOTAL_LEVELS, Math.max(1, data.unlockedLevel));
+        }
+        if (data && typeof data.currentLevel === 'number') {
+          state.currentLevel = Math.min(TOTAL_LEVELS, Math.max(1, data.currentLevel));
+        }
+      }
+    } catch (e) { /* تجاهل أي خطأ في التخزين */ }
+  }
+  function saveProgress(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        unlockedLevel: state.unlockedLevel,
+        currentLevel: state.currentLevel
+      }));
+    } catch (e) { /* تجاهل أي خطأ في التخزين */ }
+  }
+
+  /* ================= صوت بسيط (WebAudio) ================= */
+  var audioCtx = null;
+  function playTone(freq, dur, type){
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* الصوت غير متاح */ }
+  }
+
+  /* ================= إنشاء وإدارة اللوح ================= */
+  function randomType(typesCount){
+    return Math.floor(Math.random() * typesCount);
+  }
+
+  function createTile(type, row, col, spawnRow){
+    var id = ++state.tileIdCounter;
+    var tile = { id: id, type: type, row: row, col: col, spawnRow: (spawnRow === undefined ? null : spawnRow) };
+    tilesById.set(id, tile);
+    return tile;
+  }
+
+  function buildInitialMatrix(size, typesCount){
+    var m = [];
+    for (var r = 0; r < size; r++){
+      m.push([]);
+      for (var c = 0; c < size; c++){
+        var type;
+        var attempts = 0;
+        do {
+          type = randomType(typesCount);
+          attempts++;
+        } while (
+          attempts < 30 && (
+            (c >= 2 && m[r][c-1] && m[r][c-2] && m[r][c-1].type === type && m[r][c-2].type === type) ||
+            (r >= 2 && m[r-2][c] && m[r-1][c] && m[r-2][c].type === type && m[r-1][c].type === type)
+          )
+        );
+        m[r].push(createTile(type, r, c, null));
+      }
+    }
+    return m;
+  }
+
+  function setupBoardSize(){
+    var size = state.config.gridSize;
+    var boardWidth = boardEl.clientWidth;
+    state.cellSize = boardWidth / size;
+  }
+
+  function clearBoardDom(){
+    boardEl.innerHTML = '';
+    elsById.clear();
+  }
+
+  function positionEl(el, row, col){
+    var cs = state.cellSize;
+    var pad = 3;
+    el.style.width = (cs - pad*2) + 'px';
+    el.style.height = (cs - pad*2) + 'px';
+    el.style.top = (row * cs + pad) + 'px';
+    el.style.left = (col * cs + pad) + 'px';
+  }
+
+  function renderBoard(){
+    var size = state.config.gridSize;
+    var seenIds = new Set();
+    for (var r = 0; r < size; r++){
+      for (var c = 0; c < size; c++){
+        var tile = state.matrix[r][c];
+        if (!tile) continue;
+        seenIds.add(tile.id);
+        var el = elsById.get(tile.id);
+        if (!el) {
+          el = document.createElement('div');
+          el.className = 'tile' + ((r + c) % 2 === 0 ? ' even' : '');
+          el.dataset.id = tile.id;
+          el.textContent = state.config.theme.icons[tile.type];
+          el.addEventListener('click', onTileClick);
+          boardEl.appendChild(el);
+          elsById.set(tile.id, el);
+
+          if (tile.spawnRow !== null) {
+            el.style.transition = 'none';
+            positionEl(el, tile.spawnRow, tile.col);
+            el.classList.add('spawn-in');
+            // force reflow قبل تفعيل الانتقال
+            void el.offsetHeight;
+            el.style.transition = '';
+            el.classList.remove('spawn-in');
+          } else {
+            positionEl(el, tile.row, tile.col);
+          }
+        }
+        // ensure current target position
+        positionEl(el, tile.row, tile.col);
+      }
+    }
+    // تنظيف أي عناصر متبقية
+    elsById.forEach(function(el, id){
+      if (!seenIds.has(id)) {
+        el.remove();
+        elsById.delete(id);
+      }
+    });
+  }
+
+  /* ================= اكتشاف التطابقات ================= */
+  function findMatches(){
+    var size = state.config.gridSize;
+    var matched = new Set();
+
+    for (var r = 0; r < size; r++){
+      var runStart = 0;
+      for (var c = 1; c <= size; c++){
+        var prevTile = state.matrix[r][runStart];
+        var curTile = (c < size) ? state.matrix[r][c] : null;
+        var prevType = prevTile ? prevTile.type : null;
+        var curType = curTile ? curTile.type : null;
+        if (curType !== prevType || curTile === null) {
+          if (c - runStart >= 3 && prevType !== null) {
+            for (var k = runStart; k < c; k++) matched.add(r + ',' + k);
+          }
+          runStart = c;
+        }
+      }
+    }
+    for (var c2 = 0; c2 < size; c2++){
+      var rStart = 0;
+      for (var r2 = 1; r2 <= size; r2++){
+        var prevTile2 = state.matrix[rStart][c2];
+        var curTile2 = (r2 < size) ? state.matrix[r2][c2] : null;
+        var prevType2 = prevTile2 ? prevTile2.type : null;
+        var curType2 = curTile2 ? curTile2.type : null;
+        if (curType2 !== prevType2 || curTile2 === null) {
+          if (r2 - rStart >= 3 && prevType2 !== null) {
+            for (var k2 = rStart; k2 < r2; k2++) matched.add(k2 + ',' + c2);
+          }
+          rStart = r2;
+        }
+      }
+    }
+    return matched;
+  }
+
+  /* ================= تفاعل النقر والتبديل ================= */
+  function onTileClick(e){
+    if (state.isAnimating) return;
+    var id = parseInt(e.currentTarget.dataset.id, 10);
+    var tile = tilesById.get(id);
+    if (!tile) return;
+
+    if (!state.selected) {
+      state.selected = tile;
+      elsById.get(id).classList.add('selected');
+      return;
+    }
+    if (state.selected.id === id) {
+      elsById.get(id).classList.remove('selected');
+      state.selected = null;
+      return;
+    }
+    var a = state.selected, b = tile;
+    var isAdjacent = (Math.abs(a.row - b.row) + Math.abs(a.col - b.col)) === 1;
+    var prevSelectedEl = elsById.get(a.id);
+    if (prevSelectedEl) prevSelectedEl.classList.remove('selected');
+
+    if (isAdjacent) {
+      state.selected = null;
+      trySwap(a, b);
+    } else {
+      state.selected = b;
+      elsById.get(id).classList.add('selected');
+    }
+  }
+
+  function swapInMatrix(a, b){
+    state.matrix[a.row][a.col] = b;
+    state.matrix[b.row][b.col] = a;
+    var tmpRow = a.row, tmpCol = a.col;
+    a.row = b.row; a.col = b.col;
+    b.row = tmpRow; b.col = tmpCol;
+  }
+
+  function trySwap(a, b){
+    state.isAnimating = true;
+    swapInMatrix(a, b);
+    renderBoard();
+    setTimeout(function(){
+      var matches = findMatches();
+      if (matches.size > 0) {
+        if (!state.config.timed) {
+          state.movesLeft--;
+          updateHud();
+        }
+        handleMatchesFound(matches, 1);
+      } else {
+        swapInMatrix(a, b);
+        renderBoard();
+        var elA = elsById.get(a.id), elB = elsById.get(b.id);
+        if (elA) { elA.classList.add('invalid'); setTimeout(function(){ elA.classList.remove('invalid'); }, 300); }
+        if (elB) { elB.classList.add('invalid'); setTimeout(function(){ elB.classList.remove('invalid'); }, 300); }
+        setTimeout(function(){ state.isAnimating = false; }, 300);
+      }
+    }, 280);
+  }
+
+  function computeScore(cellCount, chainIndex){
+    var base = cellCount * 10 + Math.max(0, cellCount - 3) * 15;
+    var multiplier = 1 + (chainIndex - 1) * 0.5;
+    return Math.round(base * multiplier);
+  }
+
+  function spawnFloatingScore(points, chainIndex){
+    var el = document.createElement('div');
+    el.className = 'floating-score';
+    el.textContent = '+' + points + (chainIndex > 1 ? '  سلسلة×' + chainIndex.toFixed(1) : '');
+    var bw = boardEl.clientWidth, bh = boardEl.clientHeight;
+    el.style.left = (bw/2 - 40) + 'px';
+    el.style.top = (bh/2 - 10) + 'px';
+    boardEl.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 800);
+  }
+
+  /* =========================================================
+     تكسير الجواهر المتطابقة + سقوط الجواهر (GSAP)
+     handleMatchesFound: بيكسّر الجواهر المتطابقة بأنيميشن
+       Fade out + Scale down، وبعدين يستدعي dropGems.
+     dropGems: بينزّل الجواهر الموجودة لمكانها الجديد ويولّد
+       جواهر جديدة من فوق اللوح بأنيميشن سقوط (GSAP) سلس،
+       وبعد ما السقوط يخلص يفحص تلقائياً عن أي تطابقات جديدة
+       (Cascades/Combos) ويكرر نفس العملية لحد ما اللوح يستقر.
+     ========================================================= */
+
+  // إيقاف الـ CSS transition مؤقتاً على عنصر معيّن عشان GSAP
+  // يقدر يتحكم في الحركة بنفسه من غير تعارض مع transition الأصلية
+  function setElTransition(el, value){
+    if (el) el.style.transition = value;
+  }
+
+  function handleMatchesFound(matchedSet, chainIndex){
+    // 1) اجمع عناصر الـ DOM الخاصة بالجواهر المتطابقة قبل ما نشيلها من المصفوفة
+    var matchedElements = [];
+    matchedSet.forEach(function(key){
+      var parts = key.split(',');
+      var r = parseInt(parts[0], 10), c = parseInt(parts[1], 10);
+      var tile = state.matrix[r][c];
+      if (tile) {
+        var el = elsById.get(tile.id);
+        if (el) matchedElements.push(el);
+      }
+    });
+
+    // 2) احسب النقاط وحدّث الواجهة فوراً (زي ما كان بالظبط)
+    var points = computeScore(matchedSet.size, chainIndex);
+    state.score += points;
+    updateHud();
+    spawnFloatingScore(points, chainIndex);
+    playTone(440 + chainIndex * 60, 0.15, 'triangle');
+
+    // 3) أنيميشن الخروج: Fade out + Scale down بواسطة GSAP
+    var fadeOutPromise = new Promise(function(resolveFade){
+      if (matchedElements.length === 0) { resolveFade(); return; }
+
+      var doneCount = 0;
+      matchedElements.forEach(function(el){
+        setElTransition(el, 'none');
+        el.style.zIndex = 8;
+        gsap.to(el, {
+          scale: 0,
+          opacity: 0,
+          duration: 0.26,
+          ease: 'back.in(1.6)',
+          onComplete: function(){
+            doneCount++;
+            if (doneCount === matchedElements.length) resolveFade();
+          }
+        });
+      });
+    });
+
+    // 4) بعد ما أنيميشن الخروج يخلص: احذف الجواهر فعلياً من الـ DOM والمصفوفة
+    return fadeOutPromise.then(function(){
+      matchedSet.forEach(function(key){
+        var parts = key.split(',');
+        var r = parseInt(parts[0], 10), c = parseInt(parts[1], 10);
+        var tile = state.matrix[r][c];
+        if (tile) {
+          var el = elsById.get(tile.id);
+          if (el) { el.remove(); elsById.delete(tile.id); }
+          tilesById.delete(tile.id);
+          state.matrix[r][c] = null;
+        }
+      });
+      // 5) نزّل الجواهر المتبقية واملأ الفراغات بجواهر جديدة (GSAP Fall down)
+      return dropGems();
+    }).then(function(){
+      // 6) فحص تلقائي عن أي تطابقات جديدة نتجت عن السقوط (Cascades/Combos)
+      var nextMatches = findMatches();
+      if (nextMatches.size > 0) {
+        return handleMatchesFound(nextMatches, chainIndex + 1);
+      } else {
+        finalizeMove();
+      }
+    });
+  }
+
+  function dropGems(){
+    var size = state.config.gridSize;
+    var movedTiles = [];   // { tile, fromRow } — جواهر موجودة هتنزل لمكان فاضي
+    var newTiles = [];     // جواهر جديدة هتتولد من فوق اللوح
+
+    // أ) اجمع الجواهر الباقية في كل عمود، ادفعها لأسفل، وابني الجواهر
+    //    الجديدة اللي هتملى الفراغات فوقها (نفس منطق التجميع الأصلي)
+    for (var c = 0; c < size; c++){
+      var existing = [];
+      for (var r = 0; r < size; r++){
+        if (state.matrix[r][c]) existing.push(state.matrix[r][c]);
+      }
+      for (var rc = 0; rc < size; rc++) state.matrix[rc][c] = null;
+
+      var startRow = size - existing.length;
+      existing.forEach(function(tile, i){
+        var newRow = startRow + i;
+        var oldRow = tile.row;
+        tile.row = newRow;
+        tile.col = c;
+        state.matrix[newRow][c] = tile;
+        if (newRow !== oldRow) {
+          movedTiles.push({ tile: tile, fromRow: oldRow });
+        }
+      });
+
+      var missing = size - existing.length;
+      for (var i2 = 0; i2 < missing; i2++){
+        var targetRow = i2;
+        var spawnRow = targetRow - missing; // فوق حدود اللوح (مخفي بسبب overflow:hidden)
+        var type = randomType(state.config.typesCount);
+        var tile2 = createTile(type, targetRow, c, spawnRow);
+        state.matrix[targetRow][c] = tile2;
+        newTiles.push(tile2);
+      }
+    }
+
+    // ب) أنشئ عناصر الـ DOM للجواهر الجديدة وضعها في مكانها فوق اللوح (مخفية)
+    newTiles.forEach(function(tile){
+      var el = document.createElement('div');
+      el.className = 'tile' + ((tile.row + tile.col) % 2 === 0 ? ' even' : '');
+      el.dataset.id = tile.id;
+      el.textContent = state.config.theme.icons[tile.type];
+      el.addEventListener('click', onTileClick);
+      el.style.transition = 'none';
+      boardEl.appendChild(el);
+      elsById.set(tile.id, el);
+      positionEl(el, tile.spawnRow, tile.col);
+    });
+
+    // فرض إعادة رسم عشان المتصفح ياخد الوضع الابتدائي قبل ما نبدأ الأنيميشن
+    void boardEl.offsetHeight;
+
+    // ج) اجمع كل الجواهر اللي محتاجة تتحرك (الموجودة اللي نزلت + الجديدة)
+    var animTargets = [];
+    movedTiles.forEach(function(item){
+      animTargets.push({ tile: item.tile, fromRow: item.fromRow });
+    });
+    newTiles.forEach(function(tile){
+      animTargets.push({ tile: tile, fromRow: tile.spawnRow });
+    });
+
+    // د) حرّك كل جوهرة لمكانها النهائي بأنيميشن سقوط سلس (GSAP)
+    return new Promise(function(resolveDrop){
+      if (animTargets.length === 0) { resolveDrop(); return; }
+
+      var cs = state.cellSize, pad = 3;
+      var pending = animTargets.length;
+
+      animTargets.forEach(function(item){
+        var tile = item.tile;
+        var el = elsById.get(tile.id);
+        if (!el) {
+          pending--;
+          if (pending === 0) resolveDrop();
+          return;
+        }
+
+        var distanceRows = Math.max(1, tile.row - item.fromRow);
+        var duration = Math.min(0.75, 0.28 + distanceRows * 0.07);
+
+        setElTransition(el, 'none');
+        gsap.to(el, {
+          top: (tile.row * cs + pad),
+          left: (tile.col * cs + pad),
+          duration: duration,
+          delay: tile.col * 0.015,
+          ease: 'bounce.out',
+          onComplete: function(){
+            tile.spawnRow = null;
+            setElTransition(el, '');
+            el.style.zIndex = '';
+            pending--;
+            if (pending === 0) resolveDrop();
+          }
+        });
+      });
+    });
+  }
+
+  function finalizeMove(){
+    state.isAnimating = false;
+    checkWinLose();
+  }
+
+  /* ================= الهدف / الحركات / الوقت ================= */
+  function updateHud(){
+    hudLevelNum.textContent = 'المستوى ' + state.config.level;
+    hudThemeName.textContent = state.config.theme.name;
+    hudScore.textContent = state.score;
+
+    if (state.config.timed) {
+      movesLabel.textContent = 'الوقت المتبقي';
+      hudMoves.textContent = state.timeLeft + ' ث';
+      movesStat.classList.toggle('warn', state.timeLeft <= 10);
+    } else {
+      movesLabel.textContent = 'الحركات المتبقية';
+      hudMoves.textContent = state.movesLeft;
+      movesStat.classList.toggle('warn', state.movesLeft <= 3);
+    }
+
+    var pct = Math.min(100, Math.round((state.score / state.config.target) * 100));
+    goalFill.style.width = pct + '%';
+    goalLabel.textContent = 'الهدف: ' + Math.min(state.score, state.config.target) + ' / ' + state.config.target;
+  }
+
+  function startTimer(){
+    stopTimer();
+    state.timerHandle = setInterval(function(){
+      state.timeLeft--;
+      updateHud();
+      if (state.timeLeft <= 0) {
+        stopTimer();
+        checkWinLose();
+      }
+    }, 1000);
+  }
+  function stopTimer(){
+    if (state.timerHandle) { clearInterval(state.timerHandle); state.timerHandle = null; }
+  }
+
+  function checkWinLose(){
+    if (state.score >= state.config.target) {
+      stopTimer();
+      onWin();
+      return;
+    }
+    if (state.config.timed) {
+      if (state.timeLeft <= 0) { onLose('انتهى الوقت'); }
+    } else {
+      if (state.movesLeft <= 0) { onLose('انتهت الحركات'); }
+    }
+  }
+
+  /* ================= شاشات الفوز والخسارة ================= */
+  function onWin(){
+    playTone(660, 0.18, 'sine');
+    setTimeout(function(){ playTone(880, 0.22, 'sine'); }, 160);
+    if (state.currentLevel === state.unlockedLevel && state.unlockedLevel < TOTAL_LEVELS) {
+      state.unlockedLevel = state.currentLevel + 1;
+    }
+    saveProgress();
+    document.getElementById('winScore').textContent = state.score;
+    document.getElementById('winTarget').textContent = state.config.target;
+    document.getElementById('winSummary').textContent =
+      state.currentLevel >= TOTAL_LEVELS ? 'لقد أنهيت جميع المستويات المتاحة، أحسنت!' : 'الهدف تحقق قبل نفاد ' + (state.config.timed ? 'الوقت' : 'الحركات') + '.';
+    document.getElementById('btnNextLevel').classList.toggle('hidden', state.currentLevel >= TOTAL_LEVELS);
+    winModal.classList.remove('hidden');
+  }
+
+  function onLose(reason){
+    playTone(180, 0.3, 'sawtooth');
+    document.getElementById('loseTitle').textContent = reason;
+    document.getElementById('loseSummary').textContent = 'لم تصل إلى الهدف هذه المرة، جرّب مرة أخرى!';
+    document.getElementById('loseScore').textContent = state.score;
+    document.getElementById('loseTarget').textContent = state.config.target;
+    loseModal.classList.remove('hidden');
+  }
+
+  function hideAllModals(){
+    winModal.classList.add('hidden');
+    loseModal.classList.add('hidden');
+    startScreen.classList.add('hidden');
+    levelSelectScreen.classList.add('hidden');
+  }
+
+  /* ================= تحميل مستوى ================= */
+  function initLevel(levelNum){
+    stopTimer();
+    state.currentLevel = levelNum;
+    state.config = computeLevelConfig(levelNum);
+    state.score = 0;
+    state.movesLeft = state.config.movesLimit || 0;
+    state.timeLeft = state.config.timeLimit || 0;
+    state.selected = null;
+    state.isAnimating = false;
+
+    tilesById.clear();
+    clearBoardDom();
+
+    setupBoardSize();
+    state.matrix = buildInitialMatrix(state.config.gridSize, state.config.typesCount);
+    renderBoard();
+    updateHud();
+    hideAllModals();
+    saveProgress();
+
+    if (state.config.timed) startTimer();
+  }
+
+  /* ================= شاشة اختيار المستوى ================= */
+  function renderLevelGrid(){
+    levelGrid.innerHTML = '';
+    for (var i = 1; i <= TOTAL_LEVELS; i++){
+      var cell = document.createElement('div');
+      var locked = i > state.unlockedLevel;
+      cell.className = 'level-cell' + (locked ? ' locked' : '') + (i === state.currentLevel ? ' current' : '') + (i < state.unlockedLevel ? ' done' : '');
+      cell.textContent = locked ? '🔒' : i;
+      if (!locked) {
+        cell.addEventListener('click', function(levelNum){
+          return function(){
+            levelSelectScreen.classList.add('hidden');
+            initLevel(levelNum);
+          };
+        }(i));
+      }
+      levelGrid.appendChild(cell);
+    }
+  }
+
+  /* ================= الأحداث العامة ================= */
+  document.getElementById('btnPlay').addEventListener('click', function(){
+    startScreen.classList.add('hidden');
+    initLevel(state.currentLevel);
+  });
+  document.getElementById('btnPickLevel').addEventListener('click', function(){
+    startScreen.classList.add('hidden');
+    renderLevelGrid();
+    levelSelectScreen.classList.remove('hidden');
+  });
+  document.getElementById('btnLevels').addEventListener('click', function(){
+    renderLevelGrid();
+    levelSelectScreen.classList.remove('hidden');
+  });
+  document.getElementById('btnCloseLevels').addEventListener('click', function(){
+    levelSelectScreen.classList.add('hidden');
+  });
+  document.getElementById('btnRestart').addEventListener('click', function(){
+    initLevel(state.currentLevel);
+  });
+  document.getElementById('btnNextLevel').addEventListener('click', function(){
+    var next = Math.min(TOTAL_LEVELS, state.currentLevel + 1);
+    initLevel(next);
+  });
+  document.getElementById('btnReplayWin').addEventListener('click', function(){
+    initLevel(state.currentLevel);
+  });
+  document.getElementById('btnRetryLose').addEventListener('click', function(){
+    initLevel(state.currentLevel);
+  });
+  document.getElementById('btnLevelsFromLose').addEventListener('click', function(){
+    loseModal.classList.add('hidden');
+    renderLevelGrid();
+    levelSelectScreen.classList.remove('hidden');
+  });
+
+  var resizeTimeout = null;
+  window.addEventListener('resize', function(){
+    if (!state.config) return;
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function(){
+      setupBoardSize();
+      var els = boardEl.querySelectorAll('.tile');
+      els.forEach(function(el){ el.style.transition = 'none'; });
+      renderBoard();
+      void boardEl.offsetHeight;
+      els.forEach(function(el){ el.style.transition = ''; });
+    }, 120);
+  });
+
+  /* ================= بدء التشغيل ================= */
+  loadProgress();
+  hudLevelNum.textContent = 'المستوى ' + state.currentLevel;
+})();
+</script>
+</body>
+</html>
